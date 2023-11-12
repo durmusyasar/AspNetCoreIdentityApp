@@ -20,4 +20,3 @@ namespace AspNetCoreIdentityApp.Web.CustomValidations
         }
     }
 }
-  

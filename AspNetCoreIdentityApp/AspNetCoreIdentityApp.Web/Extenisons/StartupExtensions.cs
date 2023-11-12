@@ -14,6 +14,11 @@ namespace AspNetCoreIdentityApp.Web.Extenisons
                 opt.TokenLifespan = TimeSpan.FromHours(2);
             });
 
+            services.Configure<SecurityStampValidatorOptions>(opt =>
+            {
+                opt.ValidationInterval = TimeSpan.FromMinutes(30);
+            });
+
             services.AddIdentity<AppUser, AppRole>(options =>
             {
 
@@ -34,8 +39,6 @@ namespace AspNetCoreIdentityApp.Web.Extenisons
                 .AddErrorDescriber<LocalizationIdentityErrorDescriber>()
                 .AddDefaultTokenProviders()
                 .AddEntityFrameworkStores<AppDbContext>();
-
-
         }
     }
 }
