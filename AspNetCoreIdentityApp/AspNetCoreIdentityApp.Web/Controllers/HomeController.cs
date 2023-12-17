@@ -5,6 +5,7 @@ using AspNetCoreIdentityApp.Web.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using System.Security.Claims;
 
 namespace AspNetCoreIdentityApp.Web.Controllers
 {
@@ -49,24 +50,26 @@ namespace AspNetCoreIdentityApp.Web.Controllers
         {
             if (!ModelState.IsValid)
                 return View();
+            
+            var identityResult = await _userManager.CreateAsync(new() { UserName = request.UserName, PhoneNumber = request.Phone, Email = request.Email }, request.PasswordConfirm);
 
-            var identityResult = await _userManager.CreateAsync(new()
+            if (!identityResult.Succeeded)
             {
-                UserName = request.UserName,
-                PhoneNumber = request.Phone,
-                Email = request.Email
-            }, request.PasswordConfirm);
+                ModelState.AddModelErrorList(identityResult.Errors.Select(x => x.Description).ToList());
+                return View();
+            }
+            var exchangeExpireClaim = new Claim("ExchangeExpireDate", DateTime.Now.AddDays(10).ToString());
+            var user = await _userManager.FindByNameAsync(request.UserName);
+            var claimResult = await _userManager.AddClaimAsync(user!, exchangeExpireClaim);
 
-            if (identityResult.Succeeded)
+            if (!claimResult.Succeeded)
             {
-                TempData["SuccessMessage"] = "Üyelik kayıt işlemi başarıyla gerçekleştirilmiştir.";
-                return RedirectToAction(nameof(HomeController.SignUp));
+                ModelState.AddModelErrorList(claimResult.Errors.Select(x => x.Description).ToList());
+                return View();
             }
 
-            foreach (var item in identityResult.Errors)
-                ModelState.AddModelError(string.Empty, item.Description);
-
-            return View();
+            TempData["SuccessMessage"] = "Üyelik kayıt işlemi başarıla gerçekleşmiştir.";
+            return RedirectToAction(nameof(HomeController.SignUp));
         }
 
         public IActionResult SignIn()
@@ -103,10 +106,14 @@ namespace AspNetCoreIdentityApp.Web.Controllers
                 return View();
             }
 
-            //if (hasUser.BirthDate.HasValue)
-            //{
-            //    await _signInManager.SignInWithClaimsAsync(hasUser, model.RememberMe, new[] { new Claim("birthdate", hasUser.BirthDate.Value.ToString()) });
-            //}
+            if (hasUser.BirthDate.HasValue)
+            {
+                await _signInManager.SignInWithClaimsAsync(
+                    hasUser, 
+                    model.RememberMe, 
+                    new[] { new Claim("birthdate", hasUser.BirthDate.Value.ToString()) }
+               );
+            }
             return Redirect(returnUrl!);
 
         }

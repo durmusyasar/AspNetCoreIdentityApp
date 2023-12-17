@@ -164,5 +164,41 @@ namespace AspNetCoreIdentityApp.Web.Controllers
             ViewBag.message = message;
             return View();
         }
+
+        [HttpGet]
+        public IActionResult Claims()
+        {
+            var userClaimList = User.Claims.Select(x => new ClaimViewModel()
+            {
+                Issuer = x.Issuer,
+                Type = x.Type,
+                Value = x.Value
+            }).ToList();
+
+            return View(userClaimList);
+
+        }
+
+        [Authorize(Policy = "TrabzonPolicy")]
+        [HttpGet]
+        public IActionResult TrabzonPage()
+        {
+            return View();
+        }
+
+        [Authorize(Policy = "ExchangePolicy")]
+        [HttpGet]
+        public IActionResult ExchangePage()
+        {
+            return View();
+
+        }
+
+        [Authorize(Policy = "ViolencePolicy")]
+        [HttpGet]
+        public IActionResult ViolencePage()
+        {
+            return View();
+        }
     }
 }

@@ -1,7 +1,14 @@
+using AspNetCoreIdentityApp.Web.ClaimProvider;
 using AspNetCoreIdentityApp.Web.Extenisons;
 using AspNetCoreIdentityApp.Web.Models;
 using AspNetCoreIdentityApp.Web.OptionsModels;
+using AspNetCoreIdentityApp.Web.Permissions;
+using AspNetCoreIdentityApp.Web.Requirements;
+using AspNetCoreIdentityApp.Web.Seeds;
 using AspNetCoreIdentityApp.Web.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 
@@ -29,9 +36,60 @@ builder.Services.ConfigureApplicationCookie(opt =>
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Directory.GetCurrentDirectory()));
+builder.Services.AddScoped<IClaimsTransformation, UserClaimProvider>();
+builder.Services.AddScoped<IAuthorizationHandler, ExchangeExpireRequirementHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ViolenceRequirementHandler>();
 
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("TrabzonPolicy", policy =>
+    {
+        policy.RequireClaim("city", "Trabzon");
+    });
+
+    options.AddPolicy("ExchangePolicy", policy =>
+    {
+        policy.AddRequirements(new ExchangeExpireRequirement());
+    });
+
+    options.AddPolicy("ViolencePolicy", policy =>
+    {
+        policy.AddRequirements(new ViolenceRequirement() { ThresholdAge = 18 });
+    });
+
+    options.AddPolicy("OrderPermissionReadAndDelete", policy =>
+    {
+        policy.RequireClaim("permission", Permissions.Order.Read);
+        policy.RequireClaim("permission", Permissions.Order.Delete);
+        policy.RequireClaim("permission", Permissions.Stock.Delete);
+    });
+
+    options.AddPolicy("Permissions.Order.Read", policy =>
+    {
+        policy.RequireClaim("permission", Permissions.Order.Read);
+    });
+
+    options.AddPolicy("Permissions.Order.Delete", policy =>
+    {
+        policy.RequireClaim("permission", Permissions.Order.Delete);
+    });
+
+
+    options.AddPolicy("Permissions.Stock.Delete", policy =>
+    {
+        policy.RequireClaim("permission", Permissions.Stock.Delete);
+    });
+});
 
 var app = builder.Build();
+
+
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<AppRole>>();
+
+    await PermissionSeed.Seed(roleManager);
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
