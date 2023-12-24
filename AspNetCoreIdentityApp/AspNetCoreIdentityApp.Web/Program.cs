@@ -1,11 +1,11 @@
+using AspNetCoreIdentityApp.Core.OptionsModels;
+using AspNetCoreIdentityApp.Core.Permissions;
 using AspNetCoreIdentityApp.Web.ClaimProvider;
 using AspNetCoreIdentityApp.Web.Extenisons;
-using AspNetCoreIdentityApp.Web.Models;
-using AspNetCoreIdentityApp.Web.OptionsModels;
-using AspNetCoreIdentityApp.Web.Permissions;
+using AspNetCoreIdentityApp.Repository.Models;
 using AspNetCoreIdentityApp.Web.Requirements;
 using AspNetCoreIdentityApp.Web.Seeds;
-using AspNetCoreIdentityApp.Web.Services;
+using AspNetCoreIdentityApp.Service.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -17,7 +17,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("SqlCon")));
+builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("SqlCon"), opt =>
+{
+    opt.MigrationsAssembly("AspNetCoreIdentityApp.Repository");
+}));
 
 builder.Services.AddIdentityWithExt();
 
@@ -39,6 +42,7 @@ builder.Services.AddSingleton<IFileProvider>(new PhysicalFileProvider(Directory.
 builder.Services.AddScoped<IClaimsTransformation, UserClaimProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, ExchangeExpireRequirementHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ViolenceRequirementHandler>();
+builder.Services.AddScoped<IMemberService, MemberService>();
 
 builder.Services.AddAuthorization(options =>
 {
